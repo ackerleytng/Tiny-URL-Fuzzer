@@ -1,26 +1,36 @@
 #!/usr/bin/python
-# coding: UTF-8
 
 import sys
+from pprint import pprint
 from itertools import product
 from multiprocessing.dummy import Pool as ThreadPool
 
 import util.fuzz as fuzz
-from util import cmd, pprint, execute
+from util import execute
 from const import PARSERS, REQUESTERS
 
 DEBUG = 'debug' in sys.argv
 
+FIRST_IP = "11.11.11.11"
+SECOND_IP = "22.22.22.22"
+
 INS_COUNT = [0, 3, 0]
-WHITELIST = ['127.0.0.1', '127.1.1.1', '127.2.2.2', '127.1.1.1\n127.2.2.2']
 CHARSETS = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\x0b\x0cA01\x00'
-FORMAT = 'http://%s127.1.1.1%s127.2.2.2%s' % ('%c'*INS_COUNT[0], '%c'*INS_COUNT[1], '%c'*INS_COUNT[2])
+FORMAT = "http://{}{}{}{}{}".format(
+    "%c" * INS_COUNT[0],
+    FIRST_IP,
+    "%c" * INS_COUNT[1],
+    SECOND_IP,
+    "%c" * INS_COUNT[2],
+)
 
 def _print(msg):
     sys.stdout.write("%s\n" % msg)
 
+
 def run_parser(url):
     res = {}
+
     for key, binary in PARSERS.iteritems():
         lang, libname = key.split('.', 1)
         r = execute(lang, binary, url, base='bin/parser/')
@@ -33,14 +43,18 @@ def run_parser(url):
 
     return res
 
+
 def run_requester(url):
     res = {}
+
     for key, binary in REQUESTERS.iteritems():
         lang, libname = key.split('.', 1)
 
         r = execute(lang, binary, url, base='bin/requester/')
         res[key] = r
+
     return res
+
 
 def run(random_data):
     url = FORMAT % random_data
@@ -50,13 +64,12 @@ def run(random_data):
     urls = run_parser(url)
     gets = run_requester(url)
 
+    # Bucket the parsers according to which hosts they parsed out
+    #   e.g.
+    #   11.11.11.11: ["Java", ...]
+    #   22.22.22.22: ["Python", ...]
     total_urls = {}
-    for k,v in urls.iteritems():
-
-        # filter
-        if v not in WHITELIST:
-            continue
-
+    for k, v in urls.iteritems():
         if total_urls.get(v):
             total_urls[v].append(k)
         else:
@@ -69,15 +82,22 @@ def run(random_data):
 
         _print(msg)
 
-
     total_gets = {}
     for k, v in gets.iteritems():
+        # The webserver is written to reply with the port that it is listening to
+        #   so if you run `./setup_iptables_servers.py install` without modification
+        #   and do curl 11.11.11.11, you should get
+        #   `127.0.0.1:1180/` in return
+
+        # This line removes / and everything after it
+        # If v is "err", it will still remain as "err"
         v = v.split('/')[0]
 
-        # filter
-        if v == 'err':
-            continue
-
+        # Bucket the requesters according to which webserver
+        #   they ended up requesting
+        #   e.g.
+        #   "127.0.0.1:1180": ["Java", ...]
+        #   "127.0.0.1:2280": ["Python", ...]
         if total_gets.get(v):
             total_gets[v].append(k)
         else:
@@ -91,8 +111,10 @@ def run(random_data):
 
 
 data_set = product(list(CHARSETS), repeat=sum(INS_COUNT))
-if DEBUG:
-    for i in data_set: run(i)
+
+if 'debug' in sys.argv:
+    for i in data_set:
+        run(i)
 else:
-    pool = ThreadPool( 32 )
-    result = pool.map_async( run, data_set ).get(0xfffff)
+    pool = ThreadPool(32)
+    result = pool.map_async(run, data_set).get(0xfffff)
