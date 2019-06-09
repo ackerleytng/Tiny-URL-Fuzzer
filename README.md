@@ -1,6 +1,6 @@
 # Tiny URL Fuzzer
 
-A tiny and cute URL fuzzer in my talk of [Black Hat USA 2017](https://www.blackhat.com/us-17/speakers/Orange-Tsai.html) and [DEFCON 25](https://www.defcon.org/html/defcon-25/dc-25-speakers.html). 
+A tiny and cute URL fuzzer in my talk of [Black Hat USA 2017](https://www.blackhat.com/us-17/speakers/Orange-Tsai.html) and [DEFCON 25](https://www.defcon.org/html/defcon-25/dc-25-speakers.html).
 
 Slides:
 
@@ -11,46 +11,88 @@ Case Study:
 * [How I Chained 4 vulnerabilities on GitHub Enterprise, From SSRF Execution Chain to RCE!](http://blog.orange.tw/2017/07/how-i-chained-4-vulnerabilities-on.html)
 
 
-# How to use?
+# Setup
 
-All the code are written for hackers, and under PoC. Read the source! Some URL samples you can check [samples.txt](samples.txt)
+I suggest you run this in a VM, since running the fuzzer requires you to mess around with iptables, and you might not want to mess up your host's iptables.
 
+Use the following in a fresh installation of Ubuntu Server 18.04
 
-### Install / Restore
-```bash
-$ run_me.py install
-$ run_me.py restore
+```
+# The trending programming languages!
+sudo apt install php ruby default-jdk python nodejs
+
+# Allow fuzzing through requests
+sudo apt install python-pip
+sudo pip install requests
+
+# Allow usage of LWP::Simple for fuzzing
+sudo apt install libwww-perl
+
+# Allow usage of Ruby's addressable for fuzzing
+sudo gem install addressable
+
+# Allow usage of php's curl for fuzzing
+sudo apt install php-curl
 ```
 
-### Try
-```bash
-$ try.py http://127.0.0.1
+# Quick sanity check
 
-Go.net/url               scheme=http, host=127.0.0.1, port=
-Java.net.URL             scheme=http, host=127.0.0.1, port=-1
-NodeJS.url               scheme=http, host=127.0.0.1, port=
-PHP.parseurl             scheme=http, host=127.0.0.1, port=
-Perl.URI                 scheme=http, host=127.0.0.1, port=80
-Python.urlparse          scheme=http, host=127.0.0.1, port=
-Ruby.addressable/uri     scheme=http, host=127.0.0.1, port=
-Ruby.uri                 scheme=http, host=127.0.0.1, port=80
+Check that all the libraries under test are working
 
+First start the servers with
 
-Go.net/http              127.0.0.1:80/
-Java.URL                 127.0.0.1:80/
-NodeJS.http              127.0.0.1:80/
-PHP.curl                 127.0.0.1:80/
-PHP.open                 127.0.0.1:80/
-Perl.LWP                 127.0.0.1:80/
-Python.httplib           127.0.0.1:80/
-Python.requests          127.0.0.1:80/
-Python.urllib            127.0.0.1:80/
-Python.urllib2           127.0.0.1:80/
-Ruby.Net/HTTP            127.0.0.1:80/
-Ruby.open_uri            127.0.0.1:80/
+```
+sudo ./setup_iptables_servers.py
 ```
 
-### Fuzz
+Then run the self-test
+
+```
+$ ./self_test.py
+Java.net.URL
+scheme=http, host=11.11.11.11, port=-1
+Ruby.uri
+scheme=http, host=11.11.11.11, port=80
+Go.net/url
+scheme=http, host=11.11.11.11, port=
+PHP.parseurl
+scheme=http, host=11.11.11.11, port=
+NodeJS.url
+scheme=http, host=11.11.11.11, port=
+Python.urlparse
+scheme=http, host=11.11.11.11, port=
+Ruby.addressable/uri
+scheme=http, host=11.11.11.11, port=
+Perl.URI
+scheme=http, host=11.11.11.11, port=80
+Perl.LWP
+127.0.0.1:1180/
+NodeJS.http
+127.0.0.1:1180/
+Python.requests
+127.0.0.1:1180/
+Ruby.Net/HTTP
+127.0.0.1:1180/
+Python.urllib2
+127.0.0.1:1180/
+Python.httplib
+127.0.0.1:1180/
+Go.net/http
+127.0.0.1:1180/
+Ruby.open_uri
+127.0.0.1:1180/
+PHP.curl
+127.0.0.1:1180/
+Python.urllib
+127.0.0.1:1180/
+PHP.open
+127.0.0.1:1180/
+Java.URL
+127.0.0.1:1180/
+```
+
+# Start fuzzing
+
 ```bash
 $ fuzz.py
 ```
